@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>建築能效快篩 BERS 2024</title>
+<style>
+  :root {
+    --brand:      #007f3a;
+    --brand-mid:  #2D6A56;
+    --brand-pale: #E8F2EE;
+    --gold:       #eae8e3;
+    --gold-pale:  #F9F3E8;
+    --bg:    #F4F2EE;
+    --bg2:   #EAE8E3;
+    --bg3:   #DEDAD4;
+    --border:  rgba(27,77,62,0.12);
+    --border2: rgba(27,77,62,0.22);
+    --text:  #1B2E28;
+    --text2: #4A6560;
+    --text3: #8AA39C;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --green-fill:   #E8F2EE;
+    --green-border: #2D6A56;
+    --green-text:   #1B4D3E;
+    --green-label:  #1B4D3E;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+  }
+  .container { max-width: 780px; margin: 0 auto; }
+  .page-header {
+    background: var(--brand);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem 2rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .page-header::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(to right, var(--gold), #E8D5A3, var(--gold));
+  }
+  .page-header::after {
+    content: '';
+    position: absolute; bottom: -30px; right: -20px;
+    width: 140px; height: 140px; border-radius: 50%;
+    border: 1px solid rgba(201,169,110,0.15);
+  }
+  .page-header h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; color: #fff; letter-spacing: 0.02em; }
+  .page-header p { font-size: 12px; color: rgba(255,255,255,0.6); }
+  .page-header-tag {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    color: var(--gold); border: 0.5px solid rgba(201,169,110,0.5);
+    border-radius: 4px; padding: 2px 8px; margin-bottom: 10px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+
+  .section {
+    background: #fff;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-bottom: 1.1rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(27,77,62,0.06);
+  }
+  .sec-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: none;
+  }
+  .sec-header.collapsible { cursor: pointer; }
+  .sec-header.collapsible:hover { background: var(--brand-pale); }
+  .sec-title-wrap { display: flex; align-items: center; gap: 10px; }
+  .sec-badge {
+    width: 50px; height: 24px; border-radius: 6px;
+    background: var(--brand); color: #fff;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; letter-spacing: 0;
+  }
+
+    .lcard-auto {
+  background: #007f3a;
+  border-color: #007f3a;
+}
+.lcard-auto .lcard-l {
+  color: rgba(255,255,255,0.7);
+}
+.lcard-auto .lcard-v {
+  color: #ffffff;
+}
+.lcard-auto .lcard-u {
+  color: rgba(255,255,255,0.6);
+}
+
+  .sec-label { font-size: 13px; font-weight: 600; color: var(--text); }
+  .sec-optional { font-size: 11px; color: var(--text3); }
+  .sec-chevron {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--text3); transition: transform 0.2s;
+  }
+  .sec-optional-badge {
+    font-size: 10px; color: var(--brand-mid);
+    background: var(--brand-pale); border: 0.5px solid rgba(27,77,62,0.2);
+    border-radius: 4px; padding: 2px 7px; font-weight: 500;
+  }
+  .sec-divider { height: 0.5px; background: var(--border); margin: 0 1.5rem; }
+  .sec-body { padding: 1rem 1.5rem 1.25rem; }
+
+  .field { margin-bottom: 1rem; }
+  .field:last-child { margin-bottom: 0; }
+  label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 5px; }
+  label small { font-size: 11px; color: var(--text3); margin-left: 4px; }
+  select, input[type=number], input[type=text] {
+    width: 100%; padding: 9px 12px;
+    border: 0.5px solid var(--border2); border-radius: var(--radius);
+    background: var(--bg); color: var(--text);
+    font-size: 13px; font-family: inherit; outline: none;
+    transition: border-color 0.15s;
+  }
+  select:focus, input:focus { border-color: var(--brand-mid); box-shadow: 0 0 0 2px rgba(27,77,62,0.08); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  /* 空調切換 */
+  .ac-toggle {
+    display: flex; border: 0.5px solid var(--border2);
+    border-radius: var(--radius); overflow: hidden; width: fit-content; margin-bottom: 1rem;
+  }
+  .ac-toggle button {
+    padding: 8px 22px; border: none; background: transparent;
+    color: var(--text2); font-size: 13px; font-family: inherit; cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .ac-toggle button.active { background: var(--brand); color: #fff; font-weight: 500; }
+
+  /* 查表卡片 */
+  .lcard {
+    background: var(--bg2); border-radius: var(--radius);
+    padding: 0.75rem 1rem; border: 0.5px solid var(--border);
+  }
+  .lcard-l { font-size: 11px; color: var(--text3); margin-bottom: 5px; }
+  .lcard-v { font-size: 18px; font-weight: 600; }
+  .lcard-u { font-size: 11px; color: var(--text3); margin-left: 3px; font-weight: 400; }
+  .lcard.highlight { background: var(--brand); border-color: var(--brand); }
+  .lcard.highlight .lcard-l { color: rgba(200,220,215,0.8); }
+  .lcard.highlight .lcard-v { color: #fff; }
+  .lcard.highlight .lcard-u { color: rgba(200,220,215,0.6); }
+
+  /* AFe 公式 */
+  .afe-formula {
+    display: grid; grid-template-columns: 1fr 28px 1fr 28px 1fr;
+    gap: 6px; align-items: center;
+  }
+  .afe-op { text-align: center; font-size: 18px; color: var(--text3); font-weight: 300; }
+
+  /* TE 計算區 */
+  .te-calc-wrap { margin-bottom: 0.875rem; }
+  .te-calc-row {
+    display: grid; grid-template-columns: 1fr 28px 1fr 28px 1fr;
+    gap: 6px; align-items: stretch;
+  }
+  .te-op {
+  text-align: center; font-size: 18px; color: var(--text3); font-weight: 300;
+  display: flex; align-items: center; justify-content: center;  /* 新增這兩行 */
+}
+
+  /* 每月/每年切換 */
+  .te-period-toggle {
+    display: inline-flex; align-items: center;
+    border: 0.5px solid var(--border2); border-radius: 8px;
+    overflow: hidden; margin-bottom: 0.75rem;
+  }
+  .te-period-toggle button {
+    padding: 5px 16px; border: none; background: transparent;
+    color: var(--text2); font-size: 12px; font-family: inherit;
+    cursor: pointer; transition: background 0.12s, color 0.12s;
+  }
+  .te-period-toggle button.active {
+    background: var(--brand); color: #fff; font-weight: 500;
+  }
+  .te-monthly-hint {
+    font-size: 11px; color: var(--text3); margin-top: 4px; line-height: 1.6;
+  }
+
+  .te-field-card {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 0.75rem 1rem;
+  }
+  .te-field-card.green {
+    background: var(--green-fill); border-color: var(--green-border);
+  }
+  .te-field-card .lcard-l { font-size: 11px; color: var(--text3); margin-bottom: 5px; }
+  .te-field-card.green .lcard-l { color: var(--green-label); }
+  .te-field-card input[type=number] {
+    border: none; background: transparent; padding: 0;
+    font-size: 18px; font-weight: 600; width: 100%;
+    color: var(--text); outline: none;
+  }
+  .te-field-card.green input[type=number] { color: var(--green-text); }
+  .te-field-card input[type=number]::placeholder { font-size: 13px; font-weight: 400; color: var(--text3); }
+  .te-field-card.green input[type=number]::placeholder { color: #97C459; }
+  .te-field-unit { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  .te-field-card.green .te-field-unit { color: var(--green-label); }
+
+  .te-result-card {
+    background: var(--brand); border-radius: var(--radius); padding: 0.75rem 1rem;
+  }
+  .te-result-card .lcard-l { font-size: 11px; color: rgba(180,220,210,0.8); margin-bottom: 5px; }
+  .te-result-v { font-size: 18px; font-weight: 600; color: #fff; }
+  .te-result-u { font-size: 11px; color: rgba(180,220,210,0.7); margin-left: 3px; }
+
+  .te-legend {
+    display: flex; gap: 16px; margin-top: 8px; padding-top: 8px;
+    border-top: 0.5px solid var(--border);
+  }
+  .te-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text3); }
+  .te-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .te-dot.gray { background: var(--text3); }
+  .te-dot.green { background: var(--green-label); }
+
+  .te-or-divider {
+    display: flex; align-items: center; gap: 8px;
+    margin: 0.75rem 0; font-size: 11px; color: var(--text3);
+  }
+  .te-or-divider::before, .te-or-divider::after {
+    content: ''; flex: 1; height: 0.5px; background: var(--border);
+  }
+
+  /* 免評估分區 */
+  .list-head { display: grid; gap: 8px; margin-bottom: 5px; }
+  .list-head span { font-size: 11px; color: var(--text3); }
+  .list-row { display: grid; gap: 8px; margin-bottom: 7px; align-items: center; }
+  .exempt-head, .exempt-row { grid-template-columns: 2.2fr 1fr 1fr 1fr 32px; }
+  .other-head, .other-row { grid-template-columns: 2.2fr 1fr 1fr 1fr 32px; }
+  .list-row select, .list-row input { font-size: 12px; padding: 6px 8px; }
+  .list-kwh { font-size: 12px; color: var(--text2); }
+
+  .add-btn {
+    font-size: 12px; padding: 6px 14px;
+    border: 0.5px dashed var(--border2); border-radius: var(--radius);
+    background: transparent; color: var(--text2);
+    cursor: pointer; margin-top: 5px; font-family: inherit;
+  }
+  .add-btn:hover { background: var(--bg2); }
+  .del-btn {
+    width: 28px; height: 28px; border: none; background: transparent;
+    color: var(--text3); cursor: pointer; border-radius: 6px; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .del-btn:hover { background: var(--bg2); color: var(--text); }
+
+  /* 合計 */
+  .totals-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 0.875rem; }
+  .total-card {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.7rem 1rem; background: var(--bg2); border-radius: var(--radius); font-size: 13px;
+  }
+  .total-card-l { color: var(--text2); }
+  .total-card-v { font-size: 15px; font-weight: 600; }
+  .total-card-u { font-size: 11px; color: var(--text3); margin-left: 3px; }
+  .single-total {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.7rem 1rem; background: var(--bg2); border-radius: var(--radius);
+    margin-top: 0.75rem; font-size: 13px;
+  }
+
+  /* 揚水/電梯預覽 */
+  .result-preview {
+    background: var(--bg2); border-radius: var(--radius);
+    padding: 1rem; margin-top: 0.875rem;
+    border: 0.5px solid var(--border); display: none;
+  }
+  .result-preview.show { display: block; }
+  .result-preview-formula { font-size: 11px; color: var(--text3); margin-bottom: 6px; line-height: 1.6; }
+  .result-preview-l { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .result-preview-v { font-size: 20px; font-weight: 600; }
+  .result-preview-u { font-size: 12px; color: var(--text2); margin-left: 4px; }
+
+  .hint { font-size: 11px; color: var(--text3); margin-bottom: 0.875rem; line-height: 1.6; }
+
+  /* 計算按鈕 */
+  .calc-btn {
+    width: 100%; padding: 14px; 
+    background: var(--brand);
+    color: #fff;
+    border: none; border-radius: var(--radius);
+    font-size: 15px; font-weight: 500; font-family: inherit;
+    cursor: pointer; margin-top: 0.25rem;
+    letter-spacing: 0.04em;
+    position: relative; overflow: hidden;
+    transition: background 0.2s;
+  }
+  .calc-btn::after {
+    content: '';
+    position: absolute; top: 0; right: 0; bottom: 0;
+    width: 60px;
+    background: linear-gradient(to left, rgba(201,169,110,0.25), transparent);
+    pointer-events: none;
+  }
+  .calc-btn:hover { background: var(--brand-mid); }
+
+  /* 最終結果 */
+  .final-result { display: none; margin-top: 1.5rem; }
+  .final-result.show { display: block; }
+
+  .grade-box {
+    background: #fff; border: 0.5px solid var(--border);
+    border-left: 3px solid var(--brand);
+    border-radius: var(--radius-lg); padding: 1.5rem;
+    display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.25rem;
+    box-shadow: 0 2px 8px rgba(27,77,62,0.08);
+  }
+  .grade-score { font-size: 56px; font-weight: 700; line-height: 1; }
+  .grade-score-l { font-size: 12px; color: var(--text3); margin-top: 3px; }
+  .grade-divider { width: 1px; height: 70px; background: var(--border); }
+  .grade-lv { font-size: 24px; font-weight: 600; }
+  .grade-desc { font-size: 13px; color: var(--text2); margin-top: 6px; }
+  .grade-cei { font-size: 13px; color: var(--text3); margin-top: 8px; }
+
+  .g1{color:#0F6E56}.g2{color:#1D9E75}.g3{color:#639922}.g4{color:#BA7517}.g5{color:#A32D2D}.g6{color:#7D2020}.g7{color:#4A1515}
+
+  .scale-bar { margin-bottom: 1.25rem; }
+  .scale-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); margin-bottom: 5px; }
+  .scale-track {
+    height: 10px; border-radius: 5px;
+    background: linear-gradient(to right,#0F6E56,#1D9E75,#639922,#BA7517,#A32D2D,#7D2020,#4A1515);
+    position: relative;
+  }
+  .scale-marker {
+    position: absolute; top: -4px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--brand); border: 3px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    transform: translateX(-50%); transition: left 0.5s ease;
+  }
+
+  .metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 1.25rem; }
+  .metric { background: #fff; border: 0.5px solid var(--border); border-radius: var(--radius); padding: 0.875rem 1rem; }
+  .metric-l { font-size: 11px; color: var(--text3); margin-bottom: 5px; }
+  .metric-v { font-size: 16px; font-weight: 600; }
+  .metric-u { font-size: 11px; color: var(--text3); margin-left: 2px; }
+
+  .breakdown { background: #fff; border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; }
+  .bd-title { font-size: 13px; font-weight: 600; margin-bottom: 0.875rem; color: var(--brand); }
+  .bd-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; color: var(--text2); }
+  .bd-row:last-child { border-bottom: none; font-weight: 600; color: var(--brand); background: var(--brand-pale); margin: 4px -1.25rem -1.25rem; padding: 10px 1.25rem; border-radius: 0 0 var(--radius) var(--radius); }
+
+  .page-note { font-size: 11px; color: var(--text3); text-align: center; }
+
+  @media (max-width: 600px) {
+    .grid2, .grid3 { grid-template-columns: 1fr 1fr; }
+    .afe-formula, .te-calc-row { grid-template-columns: 1fr 20px 1fr 20px 1fr; }
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .exempt-head, .exempt-row, .other-head, .other-row { grid-template-columns: 1.5fr 0.8fr 0.8fr 0.8fr 28px; }
+    .grade-box { flex-direction: column; align-items: flex-start; gap: 1rem; }
+    .grade-divider { width: 100%; height: 1px; }
+    .totals-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="page-header">
+    <div class="page-header-tag">霖園公寓大廈管理維護股份有限公司</div>
+    <h1>建築能效快篩 BERS 2024</h1>
+    <p>依 BERS 2024 公版試算邏輯，計算 EUI* / 能效等級 / 碳排密度</p>
+  </div>
+
+  <!-- 一、基本資料 -->
+  <div class="section">
+    <div class="sec-header">
+      <div class="sec-title-wrap">
+        <span class="sec-badge">STEP 1</span>
+        <span class="sec-label">建築基本資料</span>
+      </div>
+    </div>
+    <div class="sec-divider"></div>
+    <div class="sec-body">
+
+      <div class="field">
+        <label>1. 建築分類</label>
+        <select id="btype" onchange="onTypeChange()">
+          <option value="">請選擇建築分類</option>
+          <option value="A1">A1. 辦公大樓(16層以上)</option>
+          <option value="A2">A2. 辦公大樓(16層以下)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>2. 空調類型</label>
+        <div class="ac-toggle">
+          <button id="btn-full" class="active" onclick="setAC('full')">全年空調</button>
+          <button id="btn-int" onclick="setAC('int')">間歇空調（冬天停止）</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>3. 總樓地板面積 <small>m²（自行填寫）</small></label>
+        <input type="number" id="total-area" placeholder="例：10668.92" min="1" oninput="updateAfe()">
+      </div>
+
+<div class="field">
+  <div style="display:flex; align-items:center; justify-content:space-between; cursor:pointer; margin-bottom:6px;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display==='none' ? 'grid' : 'none'; this.querySelector('.afe-toggle-icon').textContent = this.nextElementSibling.style.display==='none' ? '▸ 展開' : '▾ 收起'">
+    <label style="cursor:pointer; margin-bottom:0">評估分區面積 AFe <small>總樓地板面積 − 免評估分區總面積（自動計算）</small></label>
+    <span class="afe-toggle-icon" style="font-size:11px; color:var(--text3); white-space:nowrap; margin-left:8px">▸ 展開</span>
+  </div>
+  <div class="afe-formula" style="display:none">
+    <div class="lcard highlight"><div class="lcard-l">總樓地板面積</div><div><span class="lcard-v" id="disp-total">—</span><span class="lcard-u">m²</span></div></div>
+    <div class="afe-op">−</div>
+    <div class="lcard highlight"><div class="lcard-l">免評估分區總面積</div><div><span class="lcard-v" id="disp-exempt-area">0</span><span class="lcard-u">m²</span></div></div>
+    <div class="afe-op">=</div>
+    <div class="lcard highlight"><div class="lcard-l">評估分區面積 AFe</div><div><span class="lcard-v" id="disp-afe">—</span><span class="lcard-u">m²</span></div></div>
+  </div>
+</div>
+
+      <div class="field">
+        <label>4. 實際年總耗電量 TE <small>總灰電 − 總綠電採購 = TE</small></label>
+        <div class="te-period-toggle">
+          <button id="btn-monthly" onclick="setTEPeriod('monthly')">每月</button>
+          <button id="btn-yearly" class="active" onclick="setTEPeriod('yearly')">每年</button>
+          <button id="btn-manual" onclick="setTEPeriod('manual')">自行輸入</button>
+        </div>
+        <div id="te-calc-section">
+        <div class="te-calc-wrap">
+          <div class="te-calc-row">
+            <div class="te-field-card">
+              <div class="lcard-l" id="grey-label">總灰電用電度數</div>
+              <input type="number" id="grey-kwh" placeholder="例：850000" min="0" oninput="calcTE()">
+              <div class="te-field-unit" id="grey-unit">kWh/yr</div>
+            </div>
+            <div class="te-op">−</div>
+            <div class="te-field-card green">
+              <div class="lcard-l" id="green-label">總綠電採購度數</div>
+              <input type="number" id="green-kwh" placeholder="例：47190" min="0" oninput="calcTE()">
+              <div class="te-field-unit" id="green-unit" style="color:var(--green-label)">kWh/yr</div>
+            </div>
+            <div class="te-op">=</div>
+            <div class="te-result-card">
+              <div class="lcard-l">實際年總耗電量 TE</div>
+              <div><span class="te-result-v" id="te-display">—</span><span class="te-result-u">kWh/yr</span></div>
+            </div>
+          </div>
+          <div class="te-legend">
+            <div class="te-legend-item"><div class="te-dot gray"></div>灰電：電網購電</div>
+            <div class="te-legend-item"><div class="te-dot green"></div>綠電：憑證採購、再生能源</div>
+          </div>
+          <div class="te-monthly-hint" id="te-monthly-hint" style="display:none">每月度數 × 12 = 實際年總耗電量 TE</div>
+        </div>
+        </div>
+        <div id="te-manual-section" style="display:none">
+          <input type="number" id="te" placeholder="輸入年總耗電量（kWh/yr）" min="0" oninput="onTeManual()">
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label>城鄉係數 UR</label>
+          <select id="ur">
+            <option value="1">1.0（A區）</option>
+            <option value="0.95">0.95（B區）</option>
+            <option value="0.8">0.8（C區）</option>
+            <option value="0.7">0.7（D區）</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>電力碳係數 β1</label>
+          <input type="number" id="beta" value="0.474" step="0.001">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 二、免評估分區 -->
+  <div class="section">
+    <div class="sec-header collapsible" onclick="toggleSection('sec2','chev2')">
+      <div class="sec-title-wrap">
+        <span class="sec-badge">STEP 2</span>
+        <span class="sec-label">免評估分區</span>
+        <span class="sec-optional">停車場、機房、屋突等</span>
+      </div>
+      <div class="sec-chevron" id="chev2">
+        <span class="sec-optional-badge">選填</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div id="sec2" style="display:none">
+      <div class="sec-divider"></div>
+      <div class="sec-body">
+        <div class="list-head exempt-head">
+          <span>分區類型</span><span>面積 (m²)</span><span>耗電係數</span><span>年耗電 (kWh)</span><span></span>
+        </div>
+        <div id="exempt-zones"></div>
+        <button class="add-btn" onclick="addExemptZone()">＋ 新增免評估分區</button>
+        <div class="totals-row">
+          <div class="total-card"><span class="total-card-l">免評估分區總面積</span><div><span class="total-card-v" id="exempt-area-total">0</span><span class="total-card-u">m²</span></div></div>
+          <div class="total-card"><span class="total-card-l">免評估年耗電 EN</span><div><span class="total-card-v" id="exempt-kwh-total">0</span><span class="total-card-u">kWh/yr</span></div></div>
+        </div>
+        <div class="field" style="margin-top:0.875rem">
+          <label>電扶梯年耗電 Ees <small>若無填 0</small></label>
+          <input type="number" id="ees" value="0" min="0" placeholder="kWh/yr">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 三、揚水 -->
+  <div class="section">
+    <div class="sec-header collapsible" onclick="toggleSection('sec3','chev3')">
+      <div class="sec-title-wrap">
+        <span class="sec-badge">STEP 3</span>
+        <span class="sec-label">揚水年耗電 Ep</span>
+      </div>
+      <div class="sec-chevron" id="chev3">
+        <span class="sec-optional-badge">選填</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div id="sec3" style="display:none">
+      <div class="sec-divider"></div>
+      <div class="sec-body">
+        <p class="hint">公式：Ep = 0.02 × (HP+6.0) × (250 × AFe × Qdp × Pd × Rf / 1000)</p>
+        <div class="field">
+          <label>建築用途 <small>依表 4.4 自動帶入 Qdp / Pd / Rf，不可修改</small></label>
+          <select id="water-preset" onchange="applyWaterPreset()">
+            <option value="">請選擇建築用途</option>
+            <option value="office">金融、辦公建築</option>
+            <option value="library">圖書館</option>
+            <option value="museum">美術館、博物館、文化中心</option>
+          </select>
+        </div>
+        <div class="grid3" style="margin-bottom:0.875rem">
+          <div class="lcard">
+            <div class="lcard-l">水塔高度 HP（m，手動填寫）</div>
+            <input type="number" id="hp" placeholder="34.8" step="0.1" oninput="autoCalc()" style="border:none;background:transparent;padding:0;font-size:18px;font-weight:600;width:100%;color:var(--text);outline:none;margin-top:4px;">
+          </div>
+          <div class="lcard"><div class="lcard-l">每人日用水量 Qdp</div><div><span class="lcard-v" id="v-qdp">—</span><span class="lcard-u">L/人·日</span></div></div>
+          <div class="lcard"><div class="lcard-l">人員密度 Pd</div><div><span class="lcard-v" id="v-pd">—</span><span class="lcard-u">人/m²</span></div></div>
+        </div>
+        <div class="result-preview" id="ep-preview">
+          <div class="result-preview-formula" id="ep-formula"></div>
+          <div class="result-preview-l">揚水年耗電量 Ep</div>
+          <div><span class="result-preview-v" id="ep-val">—</span><span class="result-preview-u">kWh/yr</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 四、電梯 -->
+  <div class="section">
+    <div class="sec-header collapsible" onclick="toggleSection('sec4','chev4')">
+      <div class="sec-title-wrap">
+        <span class="sec-badge">STEP 4</span>
+        <span class="sec-label">電梯耗電密度 EtEUI</span>
+      </div>
+      <div class="sec-chevron" id="chev4">
+        <span class="sec-optional-badge">選填</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div id="sec4" style="display:none">
+      <div class="sec-divider"></div>
+      <div class="sec-body">
+        <p class="hint">公式：EtEUI = (0.6 × Σ Nej × Eelj × YOHj) / AFe　　電梯營運率 Or 固定 0.6</p>
+        <div class="grid2" style="margin-bottom:1rem">
+          <div class="field" style="margin-bottom:0">
+            <label>建築樓層數 <small>查表 3.1 帶入 Eelj</small></label>
+            <select id="elev-floor" onchange="autoCalc()">
+              <option value="">請選擇</option>
+              <option value="3.49">2F–6F（Eelj = 3.49 kWh/台·hr）</option>
+              <option value="8.24">7F–16F（Eelj = 8.24 kWh/台·hr）</option>
+              <option value="9.42">17F–30F（Eelj = 9.42 kWh/台·hr）</option>
+              <option value="16.48">31F以上（速度 210 m/min）</option>
+              <option value="23.55">31F以上（速度 300 m/min）</option>
+              <option value="32.97">31F以上（速度 420 m/min）</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>年營運時間 YOHj <small>查表 3.2</small></label>
+            <select id="yoh-select" onchange="autoCalc()">
+              <option value="">請選擇</option>
+              <option value="2250">集會表演/體育/文教（2250 hr/yr）</option>
+              <option value="6570">國際航站/醫院長照（6570 hr/yr）</option>
+              <option value="4700">車站船站/商業（4700 hr/yr）</option>
+              <option value="5800">健身休閒（5800 hr/yr）</option>
+              <option value="2500">文教醫療/金融辦公（2500 hr/yr）</option>
+              <option value="1430">教室（1430 hr/yr）</option>
+              <option value="1880">教室（1880 hr/yr）</option>
+              <option value="4000">住宅（4000 hr/yr）</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid3" style="margin-bottom:0.875rem">
+          <div class="lcard">
+            <div class="lcard-l">電梯台數 Nej（手動填寫）</div>
+            <input type="number" id="nej" placeholder="台數" min="1" step="1" oninput="autoCalc()" style="border:none;background:transparent;padding:0;font-size:18px;font-weight:600;width:100%;color:var(--text);outline:none;margin-top:4px;">
+          </div>
+          <div class="lcard"><div class="lcard-l">電梯營運率 Or</div><div><span class="lcard-v">0.6</span><span class="lcard-u">（固定）</span></div></div>
+          <div class="lcard"><div class="lcard-l">Eelj 基準耗電量</div><div><span class="lcard-v" id="v-eelj">—</span><span class="lcard-u">kWh/台·hr</span></div></div>
+        </div>
+        <div class="result-preview" id="eteui-preview">
+          <div class="result-preview-formula" id="eteui-formula"></div>
+          <div class="result-preview-l">電梯耗電密度 EtEUI</div>
+          <div><span class="result-preview-v" id="eteui-val">—</span><span class="result-preview-u">kWh/(m²·yr)</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 五、其他用電 -->
+  <div class="section">
+    <div class="sec-header collapsible" onclick="toggleSection('sec5','chev5')">
+      <div class="sec-title-wrap">
+        <span class="sec-badge">STEP 5</span>
+        <span class="sec-label">其他用電</span>
+      </div>
+      <div class="sec-chevron" id="chev5">
+        <span class="sec-optional-badge">選填</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div id="sec5" style="display:none">
+      <div class="sec-divider"></div>
+      <div class="sec-body">
+        <p class="hint">Ee（各設備）= 耗電(kW) × 年營運時間(hr)　　合計後於 EUI* 計算中扣除</p>
+        <div class="list-head other-head">
+          <span>用電設備名稱</span><span>耗電 (kW)</span><span>年營運時間 (hr)</span><span>Ee (kWh/yr)</span><span></span>
+        </div>
+        <div id="other-devices"></div>
+        <button class="add-btn" onclick="addOtherDevice()">＋ 新增用電設備</button>
+        <div class="single-total" id="other-total" style="display:none">
+          <span style="font-size:13px;color:var(--text2)">其他用電 Ee 合計</span>
+          <div><span style="font-size:15px;font-weight:600" id="other-total-val">0</span><span style="font-size:11px;color:var(--text3);margin-left:3px">kWh/yr</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="calc-btn" onclick="calculate()">計算能效等級 →</button>
+
+  <!-- 最終結果 -->
+  <div class="final-result" id="final-result">
+    <div class="grade-box">
+      <div>
+        <div class="grade-score" id="r-score">—</div>
+        <div class="grade-score-l">能效得分</div>
+      </div>
+      <div class="grade-divider"></div>
+      <div>
+        <div class="grade-lv" id="r-grade">第 — 級</div>
+        <div class="grade-desc" id="r-desc"></div>
+        <div class="grade-cei">CEI* = <strong id="r-cei">—</strong> kgCO₂/(m²·yr)</div>
+      </div>
+    </div>
+
+    <div class="scale-bar">
+      <div class="scale-labels"><span>第1級（最優）</span><span>第7級（最差）</span></div>
+      <div class="scale-track"><div class="scale-marker" id="r-marker"></div></div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><div class="metric-l">EUI*（耗電密度指標）</div><div class="metric-v"><span id="r-eui">—</span><span class="metric-u">kWh/(m²·yr)</span></div></div>
+      <div class="metric"><div class="metric-l">EtEUI（電梯耗電密度）</div><div class="metric-v"><span id="r-eteui">—</span><span class="metric-u">kWh/(m²·yr)</span></div></div>
+      <div class="metric"><div class="metric-l">Ep（揚水年耗電）</div><div class="metric-v"><span id="r-ep">—</span><span class="metric-u">kWh/yr</span></div></div>
+      <div class="metric"><div class="metric-l">EUIg（綠建築基準）</div><div class="metric-v"><span id="r-euig">—</span><span class="metric-u">kWh/(m²·yr)</span></div></div>
+      <div class="metric"><div class="metric-l">EUIn（近零碳基準）</div><div class="metric-v"><span id="r-euin">—</span><span class="metric-u">kWh/(m²·yr)</span></div></div>
+      <div class="metric"><div class="metric-l">其他用電 Ee 合計</div><div class="metric-v"><span id="r-ee">—</span><span class="metric-u">kWh/yr</span></div></div>
+    </div>
+
+    <div class="breakdown">
+      <div class="bd-title">EUI* 拆解計算</div>
+      <div class="bd-row"><span>總灰電用電度數</span><span id="bd-grey">—</span></div>
+      <div class="bd-row"><span>總綠電採購度數</span><span id="bd-green">—</span></div>
+      <div class="bd-row"><span>實際年總耗電 TE</span><span id="bd-te">—</span></div>
+      <div class="bd-row"><span>總樓地板面積</span><span id="bd-total">—</span></div>
+      <div class="bd-row"><span>免評估分區總面積</span><span id="bd-exempt">—</span></div>
+      <div class="bd-row"><span>評估分區面積 AFe</span><span id="bd-afe">—</span></div>
+      <div class="bd-row"><span>免評估年耗電 UR×EN</span><span id="bd-en">—</span></div>
+      <div class="bd-row"><span>電扶梯 UR×Ees</span><span id="bd-ees">—</span></div>
+      <div class="bd-row"><span>揚水 UR×Ep</span><span id="bd-ep">—</span></div>
+      <div class="bd-row"><span>其他用電扣除 Ee</span><span id="bd-ee">—</span></div>
+      <div class="bd-row"><span>EUI* = (TE − UR×(EN+Ees+Ep) − Ee) ÷ AFe</span><span id="bd-eui">—</span></div>
+    </div>
+
+    <p class="page-note">依 BERS 2024 公版試算邏輯計算。精確評分需完整現勘資料。</p>
+  </div>
+
+</div>
+
+<script>
+const BENCHMARKS = {
+  A1: { full: { AEUI:75.6, LEUI:45.4, EEUI:30.2 }, int: null },
+  A2: { full: { AEUI:65.2, LEUI:39.1, EEUI:26.1 }, int: { AEUI:45.6, LEUI:39.1, EEUI:26.1 } }
+};
+const WATER_PRESETS = {
+  office:  { Qdp:100, Pd:0.15, Rf:0.8 },
+  library: { Qdp:100, Pd:0.15, Rf:0.8 },
+  museum:  { Qdp:100, Pd:0.1,  Rf:0.6 }
+};
+const EXEMPT_PRESETS = [
+  { name:'N1. 地下一樓停車區',       coeff:10.7 },
+  { name:'N2. 地下二樓停車區',       coeff:15.0 },
+  { name:'N3. 無空調雜物間、機械間', coeff:1.6  },
+  { name:'N4. 無空調貨品倉儲',       coeff:3.1  },
+  { name:'N5. 有全年空調貨品倉儲',   coeff:50.0 },
+  { name:'N6. 屋突面積',             coeff:0    },
+  { name:'N7. 閒置未使用空間',       coeff:0    },
+];
+
+let acType = 'full';
+let exemptZones = [];
+let otherDevices = [];
+let waterParams = { Qdp:0, Pd:0, Rf:0 };
+let teFromCalc = null;
+
+function toggleSection(bodyId, chevId) {
+  const body = document.getElementById(bodyId);
+  const chev = document.getElementById(chevId);
+  const hidden = body.style.display === 'none';
+  body.style.display = hidden ? 'block' : 'none';
+  chev.style.transform = hidden ? 'rotate(180deg)' : '';
+}
+
+let tePeriod = 'yearly';
+
+function setTEPeriod(mode) {
+  tePeriod = mode;
+  document.getElementById('btn-monthly').className = mode === 'monthly' ? 'active' : '';
+  document.getElementById('btn-yearly').className  = mode === 'yearly'  ? 'active' : '';
+  document.getElementById('btn-manual').className  = mode === 'manual'  ? 'active' : '';
+
+  const isManual = mode === 'manual';
+  document.getElementById('te-calc-section').style.display   = isManual ? 'none'  : 'block';
+  document.getElementById('te-manual-section').style.display = isManual ? 'block' : 'none';
+
+  if (isManual) {
+    document.getElementById('te-display').textContent = '—';
+    teFromCalc = null;
+  } else {
+    document.getElementById('te').value = '';
+    teFromCalc = null;
+    const isMonthly = mode === 'monthly';
+    const unit = isMonthly ? 'kWh/月' : 'kWh/yr';
+    document.getElementById('grey-label').textContent  = isMonthly ? '每月灰電度數' : '總灰電用電度數';
+    document.getElementById('green-label').textContent = isMonthly ? '每月綠電採購' : '總綠電採購度數';
+    document.getElementById('grey-unit').textContent  = unit;
+    document.getElementById('green-unit').textContent = unit;
+    document.getElementById('te-monthly-hint').style.display = isMonthly ? 'block' : 'none';
+    document.getElementById('grey-kwh').placeholder  = isMonthly ? '例：70833' : '例：850000';
+    document.getElementById('green-kwh').placeholder = isMonthly ? '例：3933'  : '例：47190';
+    calcTE();
+  }
+}
+
+function calcTE() {
+  const grey  = parseFloat(document.getElementById('grey-kwh').value)  || 0;
+  const green = parseFloat(document.getElementById('green-kwh').value) || 0;
+  const multiplier = tePeriod === 'monthly' ? 12 : 1;
+  const te = Math.max(0, (grey - green) * multiplier);
+  const disp = document.getElementById('te-display');
+  const teInput = document.getElementById('te');
+  if (grey > 0) {
+    disp.textContent = Math.round(te).toLocaleString('zh-TW');
+    teInput.value = te;
+    teFromCalc = te;
+  } else {
+    disp.textContent = '—';
+    if (teFromCalc !== null) { teInput.value = ''; teFromCalc = null; }
+  }
+}
+
+function onTeManual() { teFromCalc = null; }
+
+function setAC(t) {
+  acType = t;
+  document.getElementById('btn-full').className = t==='full' ? 'active' : '';
+  document.getElementById('btn-int').className  = t==='int'  ? 'active' : '';
+  updateBenchmark();
+}
+
+function onTypeChange() { updateBenchmark(); }
+
+function updateBenchmark() {
+  const type = document.getElementById('btype').value;
+  if (!type) { ['v-aeui','v-leui','v-eeui'].forEach(id => document.getElementById(id).textContent = '—'); return; }
+  const b = BENCHMARKS[type]?.[acType];
+  if (b) {
+    document.getElementById('v-aeui').textContent = b.AEUI;
+    document.getElementById('v-leui').textContent = b.LEUI;
+    document.getElementById('v-eeui').textContent = b.EEUI;
+    ['v-aeui','v-leui','v-eeui'].forEach(id => document.getElementById(id).style.color = '');
+  } else {
+    ['v-aeui','v-leui','v-eeui'].forEach(id => { document.getElementById(id).textContent = '—（無此類型）'; document.getElementById(id).style.color = '#aaa'; });
+  }
+}
+
+function getExemptTotals() {
+  let area = 0, kwh = 0;
+  exemptZones.forEach(id => {
+    const a = parseFloat(document.getElementById(id+'_area')?.value)  || 0;
+    const c = parseFloat(document.getElementById(id+'_coeff')?.value) || 0;
+    area += a; kwh += a * c;
+  });
+  return { area, kwh };
+}
+
+function getAfe() {
+  const total = parseFloat(document.getElementById('total-area').value) || 0;
+  return Math.max(0, total - getExemptTotals().area);
+}
+
+function updateAfe() {
+  const total = parseFloat(document.getElementById('total-area').value) || 0;
+  const { area } = getExemptTotals();
+  const afe = Math.max(0, total - area);
+  const fmt = (n, d=2) => n.toLocaleString('zh-TW', {maximumFractionDigits:d});
+  document.getElementById('disp-total').textContent       = total ? fmt(total) : '—';
+  document.getElementById('disp-exempt-area').textContent = fmt(area);
+  document.getElementById('disp-afe').textContent         = total ? fmt(afe) : '—';
+  autoCalc();
+}
+
+function updateExemptSummary() {
+  const { area, kwh } = getExemptTotals();
+  document.getElementById('exempt-area-total').textContent = area.toLocaleString('zh-TW',{maximumFractionDigits:2});
+  document.getElementById('exempt-kwh-total').textContent  = Math.round(kwh).toLocaleString('zh-TW');
+  updateAfe();
+}
+
+function applyWaterPreset() {
+  const key = document.getElementById('water-preset').value;
+  const p = WATER_PRESETS[key];
+  if (p) {
+    waterParams = p;
+    document.getElementById('v-qdp').textContent = p.Qdp;
+    document.getElementById('v-pd').textContent  = p.Pd;
+  } else {
+    waterParams = { Qdp:0, Pd:0, Rf:0 };
+    ['v-qdp','v-pd'].forEach(id => document.getElementById(id).textContent = '—');
+  }
+  autoCalc();
+}
+
+function getEp() {
+  const afe = getAfe();
+  const hp  = parseFloat(document.getElementById('hp').value);
+  const { Qdp, Pd, Rf } = waterParams;
+  if (!afe || isNaN(hp) || !Qdp || !Pd || !Rf) return null;
+  return 0.02 * (hp + 6.0) * (250 * afe * Qdp * Pd * Rf / 1000);
+}
+
+function getEtEUI() {
+  const afe  = getAfe();
+  const nej  = parseFloat(document.getElementById('nej').value)         || 0;
+  const eelj = parseFloat(document.getElementById('elev-floor').value)  || 0;
+  const yoh  = parseFloat(document.getElementById('yoh-select').value)  || 0;
+  if (!afe || !nej || !eelj || !yoh) return null;
+  return (0.6 * nej * eelj * yoh) / afe;
+}
+
+function getEeTotal() {
+  let total = 0;
+  otherDevices.forEach(id => {
+    const kw = parseFloat(document.getElementById(id+'_kw')?.value) || 0;
+    const hr = parseFloat(document.getElementById(id+'_hr')?.value) || 0;
+    total += kw * hr;
+  });
+  return total;
+}
+
+function autoCalc() {
+  const afe  = getAfe();
+  const nej  = parseFloat(document.getElementById('nej').value)        || 0;
+  const eelj = parseFloat(document.getElementById('elev-floor').value) || 0;
+  const yoh  = parseFloat(document.getElementById('yoh-select').value) || 0;
+  document.getElementById('v-eelj').textContent = eelj || '—';
+
+  const eteui = getEtEUI();
+  if (eteui !== null) {
+    document.getElementById('eteui-formula').textContent = `(0.6 × ${nej} × ${eelj} × ${yoh}) / ${afe.toFixed(2)}`;
+    document.getElementById('eteui-val').textContent = eteui.toFixed(4);
+    document.getElementById('eteui-preview').classList.add('show');
+  } else { document.getElementById('eteui-preview').classList.remove('show'); }
+
+  const ep = getEp();
+  const hp = parseFloat(document.getElementById('hp').value);
+  const { Qdp, Pd, Rf } = waterParams;
+  if (ep !== null) {
+    document.getElementById('ep-formula').textContent = `0.02 × (${hp}+6.0) × (250 × ${afe.toFixed(2)} × ${Qdp} × ${Pd} × ${Rf} / 1000)`;
+    document.getElementById('ep-val').textContent = Math.round(ep).toLocaleString('zh-TW');
+    document.getElementById('ep-preview').classList.add('show');
+  } else { document.getElementById('ep-preview').classList.remove('show'); }
+
+  updateOtherTotal();
+}
+
+function addExemptZone() {
+  const id = 'ez' + Date.now() + Math.random().toString(36).slice(2,5);
+  exemptZones.push(id);
+  const opts = EXEMPT_PRESETS.map(p => `<option value="${p.coeff}">${p.name}</option>`).join('');
+  const row = document.createElement('div');
+  row.id = id; row.className = 'list-row exempt-row';
+  row.innerHTML = `
+    <select onchange="onExemptPreset(this,'${id}')"><option value="">自訂分區...</option>${opts}</select>
+    <input type="number" id="${id}_area" placeholder="m²" min="0" oninput="onExemptChange('${id}')">
+    <input type="number" id="${id}_coeff" placeholder="係數" step="0.1" oninput="onExemptChange('${id}')">
+    <div class="list-kwh" id="${id}_kwh">—</div>
+    <button class="del-btn" onclick="removeExemptZone('${id}')">×</button>`;
+  document.getElementById('exempt-zones').appendChild(row);
+}
+
+function onExemptPreset(sel, id) {
+  if (sel.value !== '') document.getElementById(id+'_coeff').value = sel.value;
+  onExemptChange(id);
+}
+
+function onExemptChange(id) {
+  const a = parseFloat(document.getElementById(id+'_area')?.value)  || 0;
+  const c = parseFloat(document.getElementById(id+'_coeff')?.value) || 0;
+  const el = document.getElementById(id+'_kwh');
+  if (el) el.textContent = (a && c) ? Math.round(a*c).toLocaleString('zh-TW')+' kWh' : '—';
+  updateExemptSummary();
+}
+
+function removeExemptZone(id) {
+  document.getElementById(id)?.remove();
+  exemptZones = exemptZones.filter(z => z !== id);
+  updateExemptSummary();
+}
+
+function addOtherDevice() {
+  const id = 'od' + Date.now() + Math.random().toString(36).slice(2,5);
+  otherDevices.push(id);
+  const row = document.createElement('div');
+  row.id = id; row.className = 'list-row other-row';
+  row.innerHTML = `
+    <input type="text" id="${id}_name" placeholder="設備名稱（如：排風機）">
+    <input type="number" id="${id}_kw" placeholder="kW" min="0" step="0.01" oninput="calcDevEe('${id}')">
+    <input type="number" id="${id}_hr" placeholder="hr/yr" min="0" oninput="calcDevEe('${id}')">
+    <div class="list-kwh" id="${id}_ee">—</div>
+    <button class="del-btn" onclick="removeOtherDevice('${id}')">×</button>`;
+  document.getElementById('other-devices').appendChild(row);
+  updateOtherTotal();
+}
+
+function calcDevEe(id) {
+  const kw = parseFloat(document.getElementById(id+'_kw')?.value) || 0;
+  const hr = parseFloat(document.getElementById(id+'_hr')?.value) || 0;
+  const el = document.getElementById(id+'_ee');
+  if (el) el.textContent = (kw && hr) ? Math.round(kw*hr).toLocaleString('zh-TW')+' kWh' : '—';
+  updateOtherTotal();
+}
+
+function removeOtherDevice(id) {
+  document.getElementById(id)?.remove();
+  otherDevices = otherDevices.filter(d => d !== id);
+  updateOtherTotal();
+}
+
+function updateOtherTotal() {
+  const total = getEeTotal();
+  const el = document.getElementById('other-total');
+  el.style.display = otherDevices.length > 0 ? 'flex' : 'none';
+  document.getElementById('other-total-val').textContent = Math.round(total).toLocaleString('zh-TW');
+}
+
+function g(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function calculate() {
+  const type = document.getElementById('btype').value;
+  if (!type) { alert('請選擇建築分類'); return; }
+  const b = BENCHMARKS[type][acType];
+  if (!b) { alert('A1 頂級辦公建築無間歇空調類型，請改選全年空調。'); return; }
+  const totalFloor = parseFloat(document.getElementById('total-area').value) || 0;
+  const afe = getAfe();
+  const te  = g('te');
+  if (!totalFloor) { alert('請填寫總樓地板面積'); return; }
+  if (!afe)        { alert('評估分區面積 AFe 為 0，請確認面積設定'); return; }
+  if (!te)         { alert('請填寫實際年總耗電量 TE（灰電欄或下方直接輸入）'); return; }
+
+  const ur   = g('ur'), beta = g('beta'), ees = g('ees');
+  const { AEUI:aeui, LEUI:leui, EEUI:eeui } = b;
+  const eteui = getEtEUI() || 0;
+  const ep    = getEp()    || 0;
+  const ee    = getEeTotal();
+  const { area: exemptArea, kwh: EN } = getExemptTotals();
+  const grey  = parseFloat(document.getElementById('grey-kwh').value)  || 0;
+  const green = parseFloat(document.getElementById('green-kwh').value) || 0;
+
+  const EUIn   = ur * (0.5*(aeui+leui+eteui) + eeui);
+  const EUIg   = ur * (0.8*(aeui+leui+eteui) + eeui);
+  const EUImax = ur * (2.0*(aeui+leui+eteui) + eeui);
+  const EUI_star = (te - ur*(EN+ees+ep) - ee) / afe;
+  const CEI = EUI_star * beta;
+
+  let score;
+  if (EUI_star <= EUIg) score = Math.min(50 + 40*(EUIg-EUI_star)/(EUIg-EUIn), 100);
+  else score = Math.max(50*(EUImax-EUI_star)/(EUImax-EUIg), 0);
+
+  const grades = [
+    [90,'第 1 級','近零碳等級，達業界頂尖水準','g1'],
+    [80,'第 2 級','優良能效，超越綠建築標準','g2'],
+    [70,'第 3 級','良好能效，符合綠建築基準','g3'],
+    [60,'第 4 級','中等能效，尚有改善空間','g4'],
+    [50,'第 5 級','能效偏低，建議優先改善','g5'],
+    [20,'第 6 級','能效不佳，改善效益顯著','g6'],
+    [ 0,'第 7 級','能效極差，急需全面改善','g7'],
+  ];
+  const [, gradeTxt, gradeDesc, cls] = grades.find(([min]) => score >= min);
+
+  const fmt  = (n, d=3) => n.toLocaleString('zh-TW', {maximumFractionDigits:d});
+  const fmtK = n => Math.round(n).toLocaleString('zh-TW');
+
+  document.getElementById('r-score').textContent = score.toFixed(1);
+  document.getElementById('r-score').className   = 'grade-score ' + cls;
+  document.getElementById('r-grade').textContent = gradeTxt;
+  document.getElementById('r-grade').className   = 'grade-lv ' + cls;
+  document.getElementById('r-desc').textContent  = gradeDesc;
+  document.getElementById('r-cei').textContent   = CEI.toFixed(2);
+  document.getElementById('r-eui').textContent   = EUI_star.toFixed(3);
+  document.getElementById('r-eteui').textContent = eteui.toFixed(4);
+  document.getElementById('r-ep').textContent    = fmtK(ep);
+  document.getElementById('r-euig').textContent  = EUIg.toFixed(3);
+  document.getElementById('r-euin').textContent  = EUIn.toFixed(3);
+  document.getElementById('r-ee').textContent    = fmtK(ee);
+  document.getElementById('bd-grey').textContent   = grey  ? fmtK(grey)+' kWh'  : '—';
+  document.getElementById('bd-green').textContent  = green ? fmtK(green)+' kWh' : '—';
+  document.getElementById('bd-te').textContent     = fmtK(te)+' kWh';
+  document.getElementById('bd-total').textContent  = fmt(totalFloor)+' m²';
+  document.getElementById('bd-exempt').textContent = fmt(exemptArea)+' m²';
+  document.getElementById('bd-afe').textContent    = fmt(afe)+' m²';
+  document.getElementById('bd-en').textContent     = fmt(ur*EN)+' kWh';
+  document.getElementById('bd-ees').textContent    = fmt(ur*ees)+' kWh';
+  document.getElementById('bd-ep').textContent     = fmt(ur*ep)+' kWh';
+  document.getElementById('bd-ee').textContent     = fmtK(ee)+' kWh';
+  document.getElementById('bd-eui').textContent    = EUI_star.toFixed(6)+' kWh/(m²·yr)';
+  document.getElementById('r-marker').style.left   = Math.max(0,Math.min(100,100-score)) + '%';
+
+  const result = document.getElementById('final-result');
+  result.classList.add('show');
+  result.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+</script>
+</body>
+</html>
