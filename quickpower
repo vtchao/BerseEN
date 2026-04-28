@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="Prototype Designer PAO-JUNG CHAO">
+
+<title>台電電費單批次擷取</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<style>
+:root {
+  --bg:#fff; --bg2:#f7f7f5; --bg3:#eeecea;
+  --text:#1a1a18; --text2:#6b6a65;
+  --border:rgba(0,0,0,0.12); --border2:rgba(0,0,0,0.22);
+  --accent:#185fa5; --acc-bg:#e6f1fb; --acc-text:#0c447c;
+  --ok-bg:#eaf3de; --ok-text:#3b6d11;
+  --err-bg:#fcebeb; --err-text:#a32d2d;
+  --warn-bg:#faeeda; --warn-text:#854f0b;
+  --r:8px; --rl:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#1c1c1a;--bg2:#252523;--bg3:#2e2e2b;--text:#f0ede6;--text2:#9a9891;
+    --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.22);
+    --accent:#378add;--acc-bg:#042c53;--acc-text:#b5d4f4;
+    --ok-bg:#173404;--ok-text:#c0dd97;--err-bg:#501313;--err-text:#f7c1c1;
+    --warn-bg:#412402;--warn-text:#fac775;}
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif;
+  background:var(--bg3);color:var(--text);min-height:100vh;padding:2rem 1rem}
+.wrap{max-width:860px;margin:0 auto}
+h1{font-size:20px;font-weight:500;margin-bottom:4px}
+.sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem}
+.drop-zone{background:var(--bg);border:1.5px dashed var(--border2);border-radius:var(--rl);
+  padding:2.5rem 1.5rem;text-align:center;cursor:pointer;transition:background .15s;margin-bottom:1rem}
+.drop-zone:hover,.drop-zone.over{background:var(--bg2)}
+.drop-zone .ico{font-size:28px;margin-bottom:8px}
+.drop-zone .lbl{font-size:14px;margin-bottom:4px}
+.drop-zone .hint{font-size:12px;color:var(--text2)}
+.hidden{display:none}
+#queueSection{margin-bottom:1rem}
+.queue-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.queue-title{font-size:13px;color:var(--text2)}
+.btn-sm{font-size:12px;padding:4px 10px;border:0.5px solid var(--border2);border-radius:var(--r);
+  background:transparent;color:var(--text2);cursor:pointer}
+.btn-sm:hover{background:var(--bg2)}
+.file-list{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);overflow:hidden}
+.file-item{display:flex;align-items:center;gap:10px;padding:8px 14px;
+  border-bottom:0.5px solid var(--border);font-size:13px}
+.file-item:last-child{border-bottom:none}
+.file-name{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-status{font-size:11px;flex-shrink:0;padding:2px 8px;border-radius:var(--r)}
+.s-wait{background:var(--bg3);color:var(--text2)}
+.s-doing{background:var(--acc-bg);color:var(--acc-text)}
+.s-ok{background:var(--ok-bg);color:var(--ok-text)}
+.s-err{background:var(--err-bg);color:var(--err-text)}
+.s-warn{background:var(--warn-bg);color:var(--warn-text)}
+.progress-wrap{margin-bottom:1rem}
+.bar-bg{height:6px;background:var(--bg3);border-radius:99px;overflow:hidden}
+.bar-fill{height:100%;background:var(--accent);border-radius:99px;transition:width .3s;width:0}
+.prog-label{font-size:12px;color:var(--text2);margin-top:5px}
+.action-row{display:flex;gap:8px;margin-bottom:1rem}
+.btn-main{flex:1;padding:10px;font-size:14px;cursor:pointer;border-radius:var(--r);
+  border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);transition:background .15s}
+.btn-main:hover:not(:disabled){background:var(--bg3)}
+.btn-main:disabled{opacity:.4;cursor:not-allowed}
+.btn-accent{flex:1;padding:10px;font-size:14px;cursor:pointer;border-radius:var(--r);
+  border:none;background:var(--accent);color:#fff;transition:opacity .15s}
+.btn-accent:hover:not(:disabled){opacity:.85}
+.btn-accent:disabled{opacity:.35;cursor:not-allowed}
+#resultSection{margin-top:1rem}
+.result-label{font-size:13px;color:var(--text2);margin-bottom:8px}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;background:var(--bg);border-radius:var(--rl);
+  overflow:hidden;font-size:13px;border:0.5px solid var(--border)}
+th{text-align:left;padding:8px 10px;background:var(--bg2);color:var(--text2);
+  font-weight:500;font-size:11px;border-bottom:0.5px solid var(--border);white-space:nowrap}
+td{padding:7px 10px;border-bottom:0.5px solid var(--border);color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.td-file{color:var(--text2);font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td-num{font-weight:500;color:var(--accent)}
+.td-miss{color:var(--text2);font-style:italic}
+pre{margin:0;padding:10px 14px;font-size:11px;line-height:1.6;color:var(--text2);
+  background:var(--bg2);white-space:pre-wrap;word-break:break-all;
+  max-height:240px;overflow-y:auto;border-top:0.5px solid var(--border)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>&#9889; 台電電費單批次擷取</h1>
+  <p class="sub">上傳電費單 PDF 或圖片，自動擷取各欄位並下載 Excel</p>
+
+  <div class="drop-zone" id="dropZone" onclick="document.getElementById('fi').click()">
+    <div class="ico">&#128194;</div>
+    <div class="lbl">點擊或拖曳多個檔案到此處</div>
+    <div class="hint">支援 JPG、PNG、PDF（可多選）</div>
+  </div>
+  <input type="file" id="fi" accept="image/*,.pdf" multiple class="hidden">
+
+  <div id="queueSection" class="hidden">
+    <div class="queue-header">
+      <span class="queue-title" id="queueLabel">已加入 0 個檔案</span>
+      <button class="btn-sm" onclick="clearAll()">清除全部</button>
+    </div>
+    <div class="file-list" id="fileList"></div>
+  </div>
+
+  <div class="progress-wrap hidden" id="progressWrap">
+    <div class="bar-bg"><div class="bar-fill" id="barFill"></div></div>
+    <div class="prog-label" id="progLabel">準備中...</div>
+  </div>
+
+  <div class="action-row">
+    <button class="btn-main" id="startBtn" onclick="startProcess()" disabled>&#128269; 開始批次 OCR</button>
+    <button class="btn-accent" id="exportBtn" onclick="exportExcel()" disabled>&#8595; 下載 Excel</button>
+  </div>
+
+  <div id="resultSection" class="hidden">
+    <div class="result-label" id="resultLabel"></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>檔案名稱</th><th>電號</th><th>繳費期限</th><th>應繳金額</th>
+          <th>計費期間</th><th>尖峰度數</th><th>半尖峰度數</th>
+          <th>週六半尖峰</th><th>離峰度數</th><th>功率因數(%)</th><th>方式</th><th></th>
+        </tr></thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+const COLS = ['檔案名稱','電號','繳費期限','應繳金額','計費期間',
+              '尖峰度數','半尖峰度數','週六半尖峰度數','離峰度數','功率因數'];
+
+let files = [], results = [], running = false;
+
+// ── file input ────────────────────────────────────────────────
+const dz = document.getElementById('dropZone');
+const fi = document.getElementById('fi');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); addFiles(e.dataTransfer.files); });
+fi.addEventListener('change', () => addFiles(fi.files));
+
+function addFiles(list) {
+  for (const f of list) {
+    if (!files.find(x => x.name === f.name && x.size === f.size)) files.push(f);
+  }
+  renderQueue();
+  document.getElementById('startBtn').disabled = files.length === 0 || running;
+}
+
+function clearAll() {
+  if (running) return;
+  files = []; results = [];
+  fi.value = '';
+  renderQueue();
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('exportBtn').disabled = true;
+  document.getElementById('resultSection').classList.add('hidden');
+  document.getElementById('progressWrap').classList.add('hidden');
+}
+
+function renderQueue() {
+  const sec = document.getElementById('queueSection');
+  const lst = document.getElementById('fileList');
+  if (!files.length) { sec.classList.add('hidden'); return; }
+  sec.classList.remove('hidden');
+  document.getElementById('queueLabel').textContent = '已加入 ' + files.length + ' 個檔案';
+  lst.innerHTML = files.map((f, i) =>
+    '<div class="file-item" id="item-' + i + '">' +
+    '<span>' + (f.type === 'application/pdf' ? '[PDF]' : '[IMG]') + '</span>' +
+    '<span class="file-name" title="' + escH(f.name) + '">' + escH(f.name) + '</span>' +
+    '<span class="file-status s-wait" id="st-' + i + '">等待中</span>' +
+    '</div>'
+  ).join('');
+}
+
+function setSt(i, cls, txt) {
+  const el = document.getElementById('st-' + i);
+  if (el) { el.className = 'file-status ' + cls; el.textContent = txt; }
+}
+
+function setBar(done, total, label) {
+  const pct = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('barFill').style.width = pct + '%';
+  document.getElementById('progLabel').textContent = done + ' / ' + total + ' 完成 — ' + label;
+}
+
+// ── PDF text layer extraction ─────────────────────────────────
+async function extractPdfText(file) {
+  const ab = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
+  let out = '';
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const ct = await page.getTextContent();
+    const items = ct.items.slice().sort(function(a, b) {
+      const dy = Math.round(b.transform[5] / 4) - Math.round(a.transform[5] / 4);
+      return dy !== 0 ? dy : a.transform[4] - b.transform[4];
+    });
+    const lines = [];
+    let curY = null, curLine = [];
+    for (const item of items) {
+      const y = Math.round(item.transform[5] / 4);
+      if (curY === null || Math.abs(y - curY) > 1) {
+        if (curLine.length) lines.push(curLine.join(' '));
+        curLine = [item.str];
+        curY = y;
+      } else {
+        curLine.push(item.str);
+      }
+    }
+    if (curLine.length) lines.push(curLine.join(' '));
+    out += lines.join('\n') + '\n';
+  }
+  return out.trim();
+}
+
+// ── PDF/Image → canvas ────────────────────────────────────────
+async function toCanvas(file) {
+  if (file.type === 'application/pdf') {
+    const ab = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
+    const page = await pdf.getPage(1);
+    const vp = page.getViewport({ scale: 2.5 });
+    const canvas = document.createElement('canvas');
+    canvas.width = vp.width; canvas.height = vp.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    return canvas;
+  } else {
+    return new Promise(function(res, rej) {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = function() {
+        const c = document.createElement('canvas');
+        c.width = img.width; c.height = img.height;
+        c.getContext('2d').drawImage(img, 0, 0);
+        URL.revokeObjectURL(url);
+        res(c);
+      };
+      img.onerror = rej;
+      img.src = url;
+    });
+  }
+}
+
+function cropCanvas(src, side) {
+  const hw = Math.floor(src.width / 2);
+  const c = document.createElement('canvas');
+  c.width = hw; c.height = src.height;
+  c.getContext('2d').drawImage(src, side === 'left' ? 0 : hw, 0, hw, src.height, 0, 0, hw, src.height);
+  return c.toDataURL('image/png');
+}
+
+// ── Main process ──────────────────────────────────────────────
+async function startProcess() {
+  if (running || !files.length) return;
+  running = true;
+  results = [];
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('exportBtn').disabled = true;
+  document.getElementById('resultSection').classList.add('hidden');
+  document.getElementById('progressWrap').classList.remove('hidden');
+
+  let worker = null;
+  async function getWorker() {
+    if (!worker) {
+      setBar(0, files.length, 'Tesseract 初始化中...');
+      worker = await Tesseract.createWorker('chi_tra+eng', 1, {
+        langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+        logger: function() {}
+      });
+      await worker.setParameters({ tessedit_pageseg_mode: '6' });
+    }
+    return worker;
+  }
+
+  for (let i = 0; i < files.length; i++) {
+    setBar(i, files.length, files[i].name);
+    const isPdf = files[i].type === 'application/pdf';
+
+    try {
+      let text = '', method = '';
+
+      if (isPdf) {
+        setSt(i, 's-doing', 'PDF 文字層...');
+        const pdfText = await extractPdfText(files[i]);
+        if (pdfText.length > 80 && /\d{3,}/.test(pdfText)) {
+          text = pdfText;
+          method = 'PDF文字層';
+        } else {
+          setSt(i, 's-doing', 'OCR 辨識中...');
+          const w = await getWorker();
+          const canvas = await toCanvas(files[i]);
+          const full = canvas.toDataURL('image/png');
+          const left = cropCanvas(canvas, 'left');
+          const right = cropCanvas(canvas, 'right');
+          const results3 = await Promise.all([
+            w.recognize(full),
+            w.recognize(left),
+            w.recognize(right)
+          ]);
+          text = '=FULL=\n' + results3[0].data.text +
+                 '\n=LEFT=\n' + results3[1].data.text +
+                 '\n=RIGHT=\n' + results3[2].data.text;
+          method = 'OCR分欄';
+        }
+      } else {
+        setSt(i, 's-doing', 'OCR 辨識中...');
+        const w = await getWorker();
+        const canvas = await toCanvas(files[i]);
+        const full = canvas.toDataURL('image/png');
+        const left = cropCanvas(canvas, 'left');
+        const right = cropCanvas(canvas, 'right');
+        const results3 = await Promise.all([
+          w.recognize(full),
+          w.recognize(left),
+          w.recognize(right)
+        ]);
+        text = '=FULL=\n' + results3[0].data.text +
+               '\n=LEFT=\n' + results3[1].data.text +
+               '\n=RIGHT=\n' + results3[2].data.text;
+        method = 'OCR分欄';
+      }
+
+      const extracted = parseFields(text, files[i].name);
+      extracted._method = method;
+      results.push(extracted);
+      setSt(i, extracted._partial ? 's-warn' : 's-ok',
+            extracted._partial ? '部分(' + method + ')' : '完成(' + method + ')');
+    } catch (e) {
+      console.error(e);
+      const empty = {};
+      COLS.forEach(function(c) { empty[c] = ''; });
+      empty['檔案名稱'] = files[i].name;
+      empty._partial = true;
+      empty._rawText = String(e);
+      empty._method = '失敗';
+      results.push(empty);
+      setSt(i, 's-err', '失敗');
+    }
+  }
+
+  if (worker) await worker.terminate();
+  running = false;
+  setBar(files.length, files.length, '全部完成！');
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('exportBtn').disabled = results.length === 0;
+  renderResults();
+}
+
+// ── Field parsing ─────────────────────────────────────────────
+function parseFields(text, filename) {
+  const raw = text.replace(/\r\n/g, '\n');
+
+  // Section split for OCR multi-pass
+  const secFull  = (raw.match(/=FULL=[\s\S]*?(?==LEFT=|=RIGHT=|$)/) || [''])[0];
+  const secRight = (raw.match(/=RIGHT=[\s\S]*?$/) || [''])[0];
+  const useAll   = raw;
+
+  // Normalize all dash variants → plain hyphen
+  function norm(src) {
+    return src
+      .replace(/[\u002D\u2012\u2013\u2014\u2015\uFE58\uFE63\uFF0D\uFF3F\u2010\u2011]/g, '-')
+      .replace(/\s*-\s*/g, '-')
+      .replace(/[Oo\uFF4F\uFF2F]/g, '0')
+      .replace(/\s*[.．。﹒]\s*/g, '.')
+      .replace(/\s*[\/／]\s*/g, '/');
+  }
+
+  const normAll   = norm(useAll);
+  const normRight = norm(secRight || useAll);
+
+  function find(patterns, src) {
+    src = src || normAll;
+    for (const p of patterns) {
+      const m = src.match(p);
+      if (m) return (m[1] || '').trim().replace(/\s/g, '');
+    }
+    return '';
+  }
+
+  // 電號: 2-2-4-2-1
+  const dengo = (function() {
+    const forNum = normAll
+      .replace(/(\d)\s+(\d)/g, '$1$2')
+      .replace(/(\d)\s+(\d)/g, '$1$2');
+    const area = forNum.match(/電\s*號[\s\S]{0,200}/);
+    const hay = area ? area[0] : forNum;
+    let m = hay.match(/(\d{2})-(\d{2})-(\d{4})-(\d{2})-(\d)(?!\d)/);
+    if (m) return m[1]+'-'+m[2]+'-'+m[3]+'-'+m[4]+'-'+m[5];
+    m = hay.match(/(\d{2})[^\d]{1,3}(\d{2})[^\d]{1,3}(\d{4})[^\d]{1,3}(\d{2})[^\d]{1,3}(\d)(?!\d)/);
+    if (m) return m[1]+'-'+m[2]+'-'+m[3]+'-'+m[4]+'-'+m[5];
+    m = forNum.match(/(\d{2})-(\d{2})-(\d{4})-(\d{2})-(\d)(?!\d)/);
+    if (m) return m[1]+'-'+m[2]+'-'+m[3]+'-'+m[4]+'-'+m[5];
+    return '';
+  })();
+
+  // 繳費期限
+  const dueDate = find([
+    /繳\s*費\s*期\s*限\s*([\d]{2,4}[\/\s][\d]{1,2}[\/\s][\d]{1,2})/,
+    /Due\s*Date\s*([\d]{2,4}[\/][\d]{1,2}[\/][\d]{1,2})/i,
+  ]).replace(/\s/g, '/');
+
+  // 應繳金額
+  const amount = find([
+    /應\s*繳\s*總\s*金\s*額\s*([\d,，]+)\s*元/,
+    /應\s*繳\s*金\s*額\s*([\d,，]+)\s*元/,
+    /[*＊]{2,}\s*([\d,，]+)\s*元/,
+    /Total\s*Amount\s*([\d,，]+)/i,
+  ]).replace(/[,，]/g, ',');
+
+  // 計費期間
+  const period = find([
+    /([\d]{3,4}\/[\d]{2}\/[\d]{2}\s*至\s*[\d]{3,4}\/[\d]{2}\/[\d]{2})/,
+    /計\s*費\s*期\s*間\s*([\d]{2,4}[\/][\d]{1,2}[\/][\d]{1,2}[^\n]{0,15}[\d]{2,4}[\/][\d]{1,2}[\/][\d]{1,2})/,
+  ], normAll);
+
+  // 各時段度數 — search right column first
+  function findNum(patterns) {
+    for (const p of patterns) {
+      let m = normRight.match(p);
+      if (m) return (m[1] || '').replace(/[,，\s]/g, '');
+      m = normAll.match(p);
+      if (m) return (m[1] || '').replace(/[,，\s]/g, '');
+    }
+    return '';
+  }
+
+  const peak   = findNum([/尖\s*峰\s*度\s*數\s*([\d,]+)/]);
+  const hpeak  = findNum([/半\s*尖\s*峰\s*度\s*數\s*([\d,]+)/]);
+  const sat    = findNum([/週\s*六\s*半\s*尖\s*峰\s*度\s*數\s*([\d,]+)/, /周\s*六\s*半\s*尖\s*峰\s*度\s*數\s*([\d,]+)/]);
+  const offpk  = findNum([/離\s*峰\s*度\s*數\s*([\d,]+)/]);
+  const pf     = findNum([/功\s*率\s*因\s*數\s*[\s（(%％﹚）)]{0,8}([\d]{1,3})(?!\d)/]);
+
+  const missing = [dengo, dueDate, amount].filter(function(v){ return !v; }).length;
+
+  const r = {};
+  r['檔案名稱']     = filename;
+  r['電號']         = dengo;
+  r['繳費期限']     = dueDate;
+  r['應繳金額']     = amount ? amount + '' : '';
+  r['計費期間']     = period;
+  r['尖峰度數']     = peak   ? peak   + '' : '';
+  r['半尖峰度數']   = hpeak  ? hpeak  + '' : '';
+  r['週六半尖峰度數'] = sat  ? sat    + '' : '';
+  r['離峰度數']     = offpk  ? offpk  + '' : '';
+  r['功率因數']     = pf     ? pf     + ' %'  : '';
+  r._partial        = missing > 0;
+  r._rawText        = raw;
+  return r;
+}
+
+// ── render results ────────────────────────────────────────────
+function renderResults() {
+  const sec = document.getElementById('resultSection');
+  const body = document.getElementById('resultBody');
+  sec.classList.remove('hidden');
+  const ok = results.filter(function(r){ return !r._partial; }).length;
+  document.getElementById('resultLabel').textContent =
+    '共 ' + results.length + ' 筆，完成 ' + ok + ' 筆，部分擷取 ' + (results.length - ok) + ' 筆';
+
+  body.innerHTML = results.map(function(r, ri) {
+    const cells = COLS.map(function(c, ci) {
+      const v = r[c] || '';
+      const cls = ci === 0 ? 'td-file' : (c === '電號' && v ? 'td-num' : (v ? '' : 'td-miss'));
+      return '<td class="' + cls + '">' + escH(v || '—') + '</td>';
+    }).join('');
+    const methodCell = '<td style="font-size:11px;color:var(--text2)">' + escH(r._method || '') + '</td>';
+    const rawBtn = '<td><button class="btn-sm" onclick="toggleRaw(' + ri + ')">原文</button></td>';
+    const dataRow = '<tr>' + cells + methodCell + rawBtn + '</tr>';
+    const rawRow = '<tr id="raw-' + ri + '" style="display:none"><td colspan="12" style="padding:0">' +
+      '<pre>' + escH(r._rawText || '') + '</pre></td></tr>';
+    return dataRow + rawRow;
+  }).join('');
+}
+
+function toggleRaw(ri) {
+  const el = document.getElementById('raw-' + ri);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+// ── Excel export ──────────────────────────────────────────────
+function exportExcel() {
+  if (!results.length) return;
+  const data = [COLS].concat(results.map(function(r) {
+    return COLS.map(function(c) { return r[c] || ''; });
+  }));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [20,18,12,14,26,10,12,14,10,12].map(function(w){ return {wch:w}; });
+  XLSX.utils.book_append_sheet(wb, ws, '電費單資料');
+  const now = new Date();
+  const stamp = now.getFullYear() +
+    String(now.getMonth()+1).padStart(2,'0') +
+    String(now.getDate()).padStart(2,'0');
+  XLSX.writeFile(wb, '電費單擷取_' + stamp + '.xlsx');
+}
+
+function escH(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
