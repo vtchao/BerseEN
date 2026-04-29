@@ -124,7 +124,7 @@ pre{margin:0;padding:10px 14px;font-size:11px;line-height:1.6;color:var(--text2)
         <thead><tr>
           <th>檔案名稱</th><th>電號</th><th>繳費期限</th><th>應繳金額</th>
           <th>計費期間</th><th>尖峰度數</th><th>半尖峰度數</th>
-          <th>週六半尖峰</th><th>離峰度數</th><th>功率因數(%)</th><th>方式</th><th></th>
+          <th>週六半尖峰</th><th>離峰度數</th><th>總用電度數</th><th>功率因數(%)</th><th>方式</th><th></th>
         </tr></thead>
         <tbody id="resultBody"></tbody>
       </table>
@@ -137,7 +137,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
 const COLS = ['檔案名稱','電號','繳費期限','應繳金額','計費期間',
-              '尖峰度數','半尖峰度數','週六半尖峰度數','離峰度數','功率因數'];
+              '尖峰度數','半尖峰度數','週六半尖峰度數','離峰度數','總用電度數','功率因數'];
 
 let files = [], results = [], running = false;
 
@@ -389,18 +389,34 @@ function parseFields(text, filename) {
   }
 
   // 電號: 2-2-4-2-1
+  // PDF文字層中電號直接出現，前面沒有「電號」關鍵字
+  // 同時處理：有破折號、全形破折號、無破折號（第2頁寫成 00468935012）
   const dengo = (function() {
     const forNum = normAll
       .replace(/(\d)\s+(\d)/g, '$1$2')
       .replace(/(\d)\s+(\d)/g, '$1$2');
+
+    // 1. 先在「電號」關鍵字附近找（OCR 情況）
     const area = forNum.match(/電\s*號[\s\S]{0,200}/);
-    const hay = area ? area[0] : forNum;
-    let m = hay.match(/(\d{2})-(\d{2})-(\d{4})-(\d{2})-(\d)(?!\d)/);
+    if (area) {
+      let m = area[0].match(/(\d{2})-(\d{2})-(\d{4})-(\d{2})-(\d)(?!\d)/);
+      if (m) return m[1]+'-'+m[2]+'-'+m[3]+'-'+m[4]+'-'+m[5];
+      m = area[0].match(/(\d{2})[^\d]{1,3}(\d{2})[^\d]{1,3}(\d{4})[^\d]{1,3}(\d{2})[^\d]{1,3}(\d)(?!\d)/);
+      if (m) return m[1]+'-'+m[2]+'-'+m[3]+'-'+m[4]+'-'+m[5];
+    }
+
+    // 2. 全文找有破折號的標準格式（PDF文字層直接出現在表格中）
+    let m = forNum.match(/(\d{2})-(\d{2})-(\d{4})-(\d{2})-(\d)(?!\d)/);
     if (m) return m[1]+'-'+m[2]+'-'+m[3]+'-'+m[4]+'-'+m[5];
-    m = hay.match(/(\d{2})[^\d]{1,3}(\d{2})[^\d]{1,3}(\d{4})[^\d]{1,3}(\d{2})[^\d]{1,3}(\d)(?!\d)/);
+
+    // 3. 允許各種分隔符
+    m = forNum.match(/(\d{2})[^\d]{1,3}(\d{2})[^\d]{1,3}(\d{4})[^\d]{1,3}(\d{2})[^\d]{1,3}(\d)(?!\d)/);
     if (m) return m[1]+'-'+m[2]+'-'+m[3]+'-'+m[4]+'-'+m[5];
-    m = forNum.match(/(\d{2})-(\d{2})-(\d{4})-(\d{2})-(\d)(?!\d)/);
+
+    // 4. 第2頁「電號：00468935012」無破折號格式（11碼連續）
+    m = forNum.match(/電號[：:]*\s*(\d{2})(\d{2})(\d{4})(\d{2})(\d)(?!\d)/);
     if (m) return m[1]+'-'+m[2]+'-'+m[3]+'-'+m[4]+'-'+m[5];
+
     return '';
   })();
 
@@ -443,19 +459,27 @@ function parseFields(text, filename) {
 
   const missing = [dengo, dueDate, amount].filter(function(v){ return !v; }).length;
 
+  // 總用電度數 = 四個時段加總
+  const peakN  = parseInt(peak,  10) || 0;
+  const hpeakN = parseInt(hpeak, 10) || 0;
+  const satN   = parseInt(sat,   10) || 0;
+  const offpkN = parseInt(offpk, 10) || 0;
+  const totalKwh = (peakN + hpeakN + satN + offpkN) || '';
+
   const r = {};
-  r['檔案名稱']     = filename;
-  r['電號']         = dengo;
-  r['繳費期限']     = dueDate;
-  r['應繳金額']     = amount ? amount + '' : '';
-  r['計費期間']     = period;
-  r['尖峰度數']     = peak   ? peak   + '' : '';
-  r['半尖峰度數']   = hpeak  ? hpeak  + '' : '';
-  r['週六半尖峰度數'] = sat  ? sat    + '' : '';
-  r['離峰度數']     = offpk  ? offpk  + '' : '';
-  r['功率因數']     = pf     ? pf     + ' %'  : '';
-  r._partial        = missing > 0;
-  r._rawText        = raw;
+  r['檔案名稱']       = filename;
+  r['電號']           = dengo;
+  r['繳費期限']       = dueDate;
+  r['應繳金額']       = amount ? parseInt(amount.replace(/,/g,''), 10) || amount : '';
+  r['計費期間']       = period;
+  r['尖峰度數']       = peak   ? parseInt(peak,  10) : '';
+  r['半尖峰度數']     = hpeak  ? parseInt(hpeak, 10) : '';
+  r['週六半尖峰度數'] = sat    ? parseInt(sat,   10) : '';
+  r['離峰度數']       = offpk  ? parseInt(offpk, 10) : '';
+  r['總用電度數']     = totalKwh !== '' ? totalKwh : '';
+  r['功率因數']       = pf     ? parseInt(pf, 10)    : '';
+  r._partial          = missing > 0;
+  r._rawText          = raw;
   return r;
 }
 
@@ -477,7 +501,7 @@ function renderResults() {
     const methodCell = '<td style="font-size:11px;color:var(--text2)">' + escH(r._method || '') + '</td>';
     const rawBtn = '<td><button class="btn-sm" onclick="toggleRaw(' + ri + ')">原文</button></td>';
     const dataRow = '<tr>' + cells + methodCell + rawBtn + '</tr>';
-    const rawRow = '<tr id="raw-' + ri + '" style="display:none"><td colspan="12" style="padding:0">' +
+    const rawRow = '<tr id="raw-' + ri + '" style="display:none"><td colspan="13" style="padding:0">' +
       '<pre>' + escH(r._rawText || '') + '</pre></td></tr>';
     return dataRow + rawRow;
   }).join('');
@@ -496,7 +520,7 @@ function exportExcel() {
   }));
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(data);
-  ws['!cols'] = [20,18,12,14,26,10,12,14,10,12].map(function(w){ return {wch:w}; });
+  ws['!cols'] = [20,18,12,14,26,10,12,14,10,12,12].map(function(w){ return {wch:w}; });
   XLSX.utils.book_append_sheet(wb, ws, '電費單資料');
   const now = new Date();
   const stamp = now.getFullYear() +
