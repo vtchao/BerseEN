@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HVAC 冷速噸與水流量線上換算小工具</title>
+    <!-- Google Fonts & Material Symbols -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+
+    <style>
+        :root {
+            --md-sys-color-primary: #1b65c2;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-primary-container: #d7e3ff;
+            --md-sys-color-on-primary-container: #001b3f;
+            --md-sys-color-secondary: #565e71;
+            --md-sys-color-secondary-container: #dae2f9;
+            --md-sys-color-surface: #fbfeff;
+            --md-sys-color-surface-container: #f0f4f9;
+            --md-sys-color-surface-container-high: #e9eef6;
+            --md-sys-color-on-surface: #191c20;
+            --md-sys-color-on-surface-variant: #44474e;
+            --md-sys-color-outline: #74777f;
+            --md-sys-color-outline-variant: #c4c6d0;
+            --md-sys-shape-corner-medium: 12px;
+            --md-sys-shape-corner-large: 16px;
+            --md-sys-shape-corner-extra-large: 28px;
+            --md-elevation-1: 0px 1px 3px 1px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.30);
+            --md-elevation-2: 0px 2px 6px 2px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.30);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', 'Roboto', sans-serif;
+            background-color: var(--md-sys-color-surface-container);
+            color: var(--md-sys-color-on-surface);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 680px;
+            background: var(--md-sys-color-surface);
+            border-radius: var(--md-sys-shape-corner-extra-large);
+            box-shadow: var(--md-elevation-1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Bar */
+        .app-header {
+            background-color: var(--md-sys-color-surface-container-high);
+            padding: 24px;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .app-header .icon {
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .app-header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--md-sys-color-on-surface);
+        }
+
+        .app-header p {
+            font-size: 0.85rem;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        /* Tabs UI */
+        .tab-bar {
+            display: flex;
+            background-color: var(--md-sys-color-surface-container-high);
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 14px 8px;
+            border: none;
+            background: none;
+            font-family: inherit;
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: var(--md-sys-color-on-surface-variant);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .tab-button:hover {
+            background-color: rgba(27, 101, 194, 0.05);
+        }
+
+        .tab-button.active {
+            color: var(--md-sys-color-primary);
+            border-bottom-color: var(--md-sys-color-primary);
+            font-weight: 700;
+        }
+
+        /* Tab Content Panel */
+        .content-panel {
+            padding: 28px;
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .content-panel.active {
+            display: flex;
+        }
+
+        .panel-description {
+            font-size: 0.9rem;
+            color: var(--md-sys-color-on-surface-variant);
+            line-height: 1.5;
+            background-color: var(--md-sys-color-surface-container);
+            padding: 12px 16px;
+            border-radius: var(--md-sys-shape-corner-medium);
+        }
+
+        /* Form Controls */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--md-sys-color-on-surface-variant);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 12px 48px 12px 16px;
+            font-size: 1rem;
+            font-family: inherit;
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: var(--md-sys-shape-corner-medium);
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .input-wrapper input:focus {
+            border-color: var(--md-sys-color-primary);
+            box-shadow: 0 0 0 2px rgba(27, 101, 194, 0.2);
+        }
+
+        .input-wrapper .unit {
+            position: absolute;
+            right: 14px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--md-sys-color-outline);
+            pointer-events: none;
+        }
+
+        /* Result Cards */
+        .result-card {
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            border-radius: var(--md-sys-shape-corner-large);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .result-item .label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        .result-item .val-group {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .result-item .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .result-item .unit-tag {
+            font-size: 0.85rem;
+            font-weight: 500;
+            opacity: 0.8;
+        }
+
+        .divider {
+            height: 1px;
+            background-color: rgba(0, 27, 63, 0.15);
+            margin: 4px 0;
+        }
+
+        /* Responsive tweak */
+        @media (max-width: 480px) {
+            .tab-button span.tab-text {
+                display: none;
+            }
+            .content-panel {
+                padding: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="icon">
+            <span class="material-symbols-outlined">ac_unit</span>
+        </div>
+        <div>
+            <h1>HVAC 冷凍噸與水流量計算器</h1>
+            <p>包含實際噸數扣除功耗、冰水/冷卻水互換與流量概算</p>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="tab-bar">
+        <button class="tab-button active" onclick="switchTab(0)">
+            <span class="material-symbols-outlined">calculate</span>
+            <span class="tab-text">實際冷凍噸</span>
+        </button>
+        <button class="tab-button" onclick="switchTab(1)">
+            <span class="material-symbols-outlined">sync_alt</span>
+            <span class="tab-text">冰水/冷卻水互換</span>
+        </button>
+        <button class="tab-button" onclick="switchTab(2)">
+            <span class="material-symbols-outlined">water_drop</span>
+            <span class="tab-text">流量概算</span>
+        </button>
+    </nav>
+
+    <!-- TAB 1: 實際冷凍噸計算 -->
+    <div class="content-panel active" id="tab-0">
+        <div class="panel-description">
+            公式：<b>(LPM × ΔT × 60 / 3024) - (耗電量 kW / 3.516)</b><br>
+            考量水側熱量轉化並扣除壓縮機輸入電功率之熱功。
+        </div>
+
+        <div class="form-group">
+            <label for="lpm_input">冰水流量 (LPM)</label>
+            <div class="input-wrapper">
+                <input type="number" id="lpm_input" value="3000" oninput="calcTab1()">
+                <span class="unit">LPM</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="dt_input">出入水溫差 (ΔT)</label>
+            <div class="input-wrapper">
+                <input type="number" id="dt_input" value="5" step="0.1" oninput="calcTab1()">
+                <span class="unit">°C</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="kw_input">壓縮機/主機耗電量 (kW)</label>
+            <div class="input-wrapper">
+                <input type="number" id="kw_input" value="200" oninput="calcTab1()">
+                <span class="unit">kW</span>
+            </div>
+        </div>
+
+        <div class="result-card">
+            <div class="result-item">
+                <span class="label">淨冰水產冷量 (Net Capacity)</span>
+                <div class="val-group">
+                    <span class="value" id="tab1_net_usrt">239.8</span>
+                    <span class="unit-tag">USRT</span>
+                </div>
+            </div>
+            <div class="divider"></div>
+            <div class="result-item" style="font-size: 0.9em;">
+                <span class="label">水側毛顯熱量 (Gross Heat)</span>
+                <div class="val-group">
+                    <span class="value" id="tab1_gross_usrt" style="font-size: 1.3rem;">297.6</span>
+                    <span class="unit-tag">USRT</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: 冷卻水與冰水關係 (雙向計算) -->
+    <div class="content-panel" id="tab-1">
+        <div class="panel-description">
+            冷卻水噸數需額外帶走電能熱功，標準比例為：<br>
+            <b>冷卻水 (USRT) = 冰水 (USRT) × 1.25</b>
+        </div>
+
+        <div class="form-group">
+            <label for="chilled_usrt_input">冰水需求 (Chilled Water)</label>
+            <div class="input-wrapper">
+                <input type="number" id="chilled_usrt_input" value="500" oninput="calcTab2('chilled')">
+                <span class="unit">USRT</span>
+            </div>
+        </div>
+
+        <div style="text-align: center; color: var(--md-sys-color-outline);">
+            <span class="material-symbols-outlined" style="font-size: 32px;">swap_vert</span>
+        </div>
+
+        <div class="form-group">
+            <label for="cooling_usrt_input">冷卻水需求 (Cooling Water)</label>
+            <div class="input-wrapper">
+                <input type="number" id="cooling_usrt_input" value="625" oninput="calcTab2('cooling')">
+                <span class="unit">USRT</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: 概算流量 -->
+    <div class="content-panel" id="tab-2">
+        <div class="panel-description">
+            常見經驗概算值（溫差 ΔT ≈ 5°C 時）：<br>
+            • 冰水流量 = 噸數 × 10 LPM<br>
+            • 冷卻水流量 = 噸數 × 12.5 LPM
+        </div>
+
+        <div class="form-group">
+            <label for="base_usrt_input">目標冷凍噸數</label>
+            <div class="input-wrapper">
+                <input type="number" id="base_usrt_input" value="500" oninput="calcTab3()">
+                <span class="unit">USRT</span>
+            </div>
+        </div>
+
+        <div class="result-card">
+            <div class="result-item">
+                <span class="label">預估所需冰水流量</span>
+                <div class="val-group">
+                    <span class="value" id="tab3_chilled_flow">5,000</span>
+                    <span class="unit-tag">LPM</span>
+                </div>
+            </div>
+            <div class="divider"></div>
+            <div class="result-item">
+                <span class="label">預估所需冷卻水流量</span>
+                <div class="val-group">
+                    <span class="value" id="tab3_cooling_flow">6,250</span>
+                    <span class="unit-tag">LPM</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchTab(index) {
+        const tabs = document.querySelectorAll('.tab-button');
+        const panels = document.querySelectorAll('.content-panel');
+
+        tabs.forEach((tab, i) => {
+            if (i === index) {
+                tab.classList.add('active');
+                panels[i].classList.add('active');
+            } else {
+                tab.classList.remove('active');
+                panels[i].classList.remove('active');
+            }
+        });
+    }
+
+    // Tab 1 計算邏輯
+    function calcTab1() {
+        const lpm = parseFloat(document.getElementById('lpm_input').value) || 0;
+        const dt = parseFloat(document.getElementById('dt_input').value) || 0;
+        const kw = parseFloat(document.getElementById('kw_input').value) || 0;
+
+        // 水側毛能力 (Gross)
+        const grossUsrt = (lpm * dt * 60) / 3024;
+        // 扣除壓縮機耗電熱功 (Net)
+        const netUsrt = grossUsrt - (kw / 3.516);
+
+        document.getElementById('tab1_gross_usrt').innerText = grossUsrt.toFixed(1);
+        document.getElementById('tab1_net_usrt').innerText = netUsrt.toFixed(1);
+    }
+
+    // Tab 2 計算邏輯 (雙向連動)
+    function calcTab2(source) {
+        const chilledInput = document.getElementById('chilled_usrt_input');
+        const coolingInput = document.getElementById('cooling_usrt_input');
+
+        if (source === 'chilled') {
+            const chilledVal = parseFloat(chilledInput.value) || 0;
+            coolingInput.value = (chilledVal * 1.25).toFixed(1);
+        } else {
+            const coolingVal = parseFloat(coolingInput.value) || 0;
+            chilledInput.value = (coolingVal / 1.25).toFixed(1);
+        }
+    }
+
+    // Tab 3 計算邏輯
+    function calcTab3() {
+        const usrt = parseFloat(document.getElementById('base_usrt_input').value) || 0;
+
+        const chilledFlow = usrt * 10;
+        const coolingFlow = usrt * 12.5;
+
+        document.getElementById('tab3_chilled_flow').innerText = chilledFlow.toLocaleString('en-US');
+        document.getElementById('tab3_cooling_flow').innerText = coolingFlow.toLocaleString('en-US');
+    }
+
+    // 初始化計算
+    calcTab1();
+    calcTab3();
+</script>
+</body>
+</html>
